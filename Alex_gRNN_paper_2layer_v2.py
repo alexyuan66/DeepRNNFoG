@@ -3,9 +3,13 @@
 # Alexander M. Yuan
 # May 15, 2020
 #
+# May 18, 2020: added TFILE2 to command line
+# May 17, 2020: added TFILE to command line
+# May 16, 2020: added batch_size and epoches to command line 
+#
 # To run the program:
 #
-# <draco> python3 Alex_gRNN_paper.py [SimpleRNN|LSTM|GRU] [acti] [n_a] [Tx] [predict_d] [Tstep] [Tcutoff] [Sstep]
+# <draco> python3 Alex_gRNN_paper.py [SimpleRNN|LSTM|GRU] [acti] [n_a] [Tx] [predict_d] [Tstep] [Tcutoff] [Sstep] [batch_size] [epoches] [TFILE] [XXX] {YYY] [TFILE2]
 #
 # This implements the general RNN program in using Keras in the paper.
 # The program is modified from Alex_RNN_Paper.py
@@ -78,7 +82,12 @@ LABELS = [
 # file directory, 
 #train data and test set are all in the directory
 # 2/3 data for training, 1/3 data for testing
-TRAIN = '../../dataset_fog_release/dataset/S02/'
+
+TFILE='S01/'
+TFILE2=''
+XXX=2
+YYY=3
+TRAIN = '../../dataset_fog_release/dataset/'
 #TRAIN = '../../dataset_fog_release/dataset/test/'
 #TRAIN = 'D:/FoG/dataset_fog_release/dataset/Train/'
 
@@ -103,6 +112,11 @@ def parse_commandline():
     global RNN_cell1, RNN_cell2, af, Tx, predict_d, n_a, Tstep, Tcutoff, Sstep
     global batch_size
     global epoches
+    global TRAIN
+    global TFILE
+    global XXX
+    global YYY
+    global TFILE2
 
     if len(sys.argv) >2:
         af = sys.argv[2]
@@ -131,6 +145,17 @@ def parse_commandline():
     if len(sys.argv) > 10:
         epoches = int (sys.argv[10])
 
+    if len(sys.argv) > 11:
+        TFILE = sys.argv[11]
+
+    if len(sys.argv) > 12:
+        XXX = int(sys.argv[12])
+
+    if len(sys.argv) > 13:
+        YYY = int(sys.argv[13])
+
+    if len(sys.argv) > 14:
+        TFILE2 = sys.argv[14]
 
     if len(sys.argv) > 1:
         if sys.argv[1] == 'SimpleRNN' :
@@ -143,22 +168,30 @@ def parse_commandline():
             RNN_cell1 = GRU(n_a, activation=af, return_sequences=True, input_shape=(Tx, n_values))
             RNN_cell2 = GRU(n_a, activation=af)
         else :
-            print('Usage: python3 Alex_gRNN_paper.py [SimpleRNN|LSTM|GRU] [acti] [n_a] [Tx] [predict_d] [Tstep] [Tcutoff] [Sstep] [batch_size] [epoches]')
+            print('Usage: python3 Alex_gRNN_paper.py [SimpleRNN|LSTM|GRU] [acti] [n_a] [Tx] [predict_d] [Tstep] [Tcutoff] [Sstep] [batch_size] [epoches] [TFILE] [XXX] [YYY] [TFILE2]')
             exit(0)
 
     print('Training with the following parameters: ')
-    print('RNN_Cell1 = ', RNN_cell1)
-    print('RNN_Cell2 = ', RNN_cell2)
-    print('Activation func = ', af)
-    print('Tx = ', Tx)
-    print('n_a = ', n_a)
-    print('predict_d = ', predict_d)
-    print('Tstep = ', Tstep)
-    print('Tcutoff = ', Tcutoff)
-    print('Sstep = ', Sstep)
-    print('batch_size = ', batch_size)
-    print('epoches = ', epoches)
+    print('  RNN_Cell1 = ', RNN_cell1)
+    print('  RNN_Cell2 = ', RNN_cell2)
+    print('  Activation func = ', af)
+    print('  Tx = ', Tx)
+    print('  n_a = ', n_a)
+    print('  predict_d = ', predict_d)
+    print('  Tstep = ', Tstep)
+    print('  Tcutoff = ', Tcutoff)
+    print('  Sstep = ', Sstep)
+    print('  batch_size = ', batch_size)
+    print('  epoches = ', epoches)
+    print('  TRAIN directory =', TRAIN + TFILE)
+    print('  percentage XXX =', XXX)
+    print('  percentage YYY =', YYY)
 
+    if TFILE2 =='':
+        print('  No separate testing directory.')
+    else : 
+        print('  Testing directory = ', TRAIN+TFILE2)
+ 
 parse_commandline()
     
 # ## New code to load data Data Loading
@@ -278,8 +311,8 @@ def load_data(file_paths, shuffle = 1):
                     X_signals += batch_signals
             file.close()
             
-            train += X_signals[:2*int(len(X_signals)/3)]
-            test += X_signals[2*int(len(X_signals)/3):]
+            train += X_signals[:XXX*int(len(X_signals)/YYY)]
+            test += X_signals[XXX*int(len(X_signals)/YYY):]
             #train += X_signals[len(X_signals)-120:len(X_signals)-60]
             #test += X_signals[len(X_signals)-60:]
     
@@ -291,7 +324,14 @@ def load_data(file_paths, shuffle = 1):
     print(e_count, ' episodes in testing data')
     return train_X, train_Y, test_X, test_Y
 
-train_X, train_Y, test_X, test_Y = load_data(TRAIN, shuffle = 0)
+train_X, train_Y, test_X, test_Y = load_data(TRAIN+TFILE, shuffle = 0)
+if TFILE2 != '':
+    train_X += test_X
+    train_Y += test_Y
+    train_X1, train_Y1, test_X, test_Y = load_data(TRAIN+TFILE2, shuffle = 0)
+    test_X = train_X1 + test_X
+    test_Y = train_Y1 + test_Y
+
 train_X = np.array(train_X)
 train_Y = np.array(train_Y)
 test_X = np.array(test_X)
