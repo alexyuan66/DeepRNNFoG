@@ -443,7 +443,7 @@ for l in model.layers:
 #model.save('rnn_model_allbut1.h5')
 
 
-train_X, train_Y, test_X, test_Y = load_data(TARGET, shuffle = 0, XXX=7, YYY=10)
+train_X, train_Y, test_X, test_Y = load_data(TARGET, shuffle = 0, XXX=5, YYY=10)
 train_X = np.array(train_X)
 train_Y = np.array(train_Y)
 test_X = np.array(test_X)

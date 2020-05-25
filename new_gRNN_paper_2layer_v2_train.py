@@ -3,6 +3,8 @@
 # Alexander M. Yuan
 # May 15, 2020
 #
+# May 20, 2020: converted to the new output with 1 value
+#
 # May 19, 2020: added XXXYYY2 to command line
 # May 18, 2020: added TFILE2 to command line
 # May 17, 2020: added TFILE to command line
@@ -254,14 +256,14 @@ def gen_batch_one_episode(data, beg, end, shuffle = 1):
         X += [t]
         if i+(Tx-1)*Tstep+predict_d > end-1:
             if data[end-1][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
-                Y += [[0,1]]
+                Y += [1]
             else :
-                Y += [[1, 0]]
+                Y += [0]
         else :
-            if data[i+j*Tstep+predict_d][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
-                Y += [[0, 1]]
+            if data[i+(Tx-1)*Tstep+predict_d][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
+                Y += [1]
             else :
-                Y += [[1, 0]]
+                Y += [0]
 
     if shuffle != 1:
         return X, Y
@@ -283,12 +285,14 @@ def gen_batch(data, shuffle = 1):
     Y1 = []
     beg = 0
     end = beg
+    end1 = 0
     print('len=', len(data))
     while beg < len(data):
         end = beg
         while end < len(data) and data[end][9] != '2':
             # print(end, data[end], '**', data[end][9])
             end = end + 1
+        end1 = end
         while end < len(data) and data[end][9] == '2':
             end = end + 1
         if data[end-1][9] == '2': 
@@ -296,6 +300,7 @@ def gen_batch(data, shuffle = 1):
             X1, Y1 = gen_batch_one_episode(data, beg, end, shuffle = shuffle)
             X += X1
             Y += Y1
+#        print(beg, ' ', end1, ' ', end, ' ', end1-beg, ' ', end-end1)
         beg = end
     return X, Y
         
@@ -358,14 +363,14 @@ print(test_Y.shape)
 
 c = 0;
 for j in range(train_X.shape[0]):
-    if train_Y[j][0] == 0:
+    if train_Y[j] == 1:
         c += 1
 
 print('train_Y count = ', c)
 
 c = 0;
 for j in range(test_X.shape[0]):
-    if test_Y[j][0] == 0:
+    if test_Y[j] == 1:
         c += 1
 
 print('test_Y count = ', c)
@@ -388,7 +393,7 @@ print('test_Y count = ', c)
 n_values = 9
 reshapor = Reshape((1, n_values))
 LSTM_cell = LSTM(n_a, return_state=True)
-densor = Dense(2, activation='softmax')
+densor = Dense(1, activation='sigmoid')
 
 
 # In[7]:
@@ -453,7 +458,8 @@ model.summary()
 
 
 opt = Adam(lr=0.0009, beta_1 = 0.9, beta_2=0.999, decay = 0.01)
-model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+#model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy'])
 
 
 # # initialize hidden state and cell state
@@ -470,11 +476,15 @@ print(YYY.shape)
 
 # In[11]:
 
+#myYYY = to_categorical(YYY)
+
 model.fit(XXX, YYY, batch_size=batch_size, epochs=epoches)
 
 # In[12]:
 
-#model.save('rnn_model.h5')
+model.save(sys.argv[1] + '_' + TFILE[:-1] + '_' + str(predict_d) + '.h5')
+
+exit(0)
 
 #model1 = load_model('rnn_model.h5')
 Out = model.predict(XXX, verbose=0)
@@ -491,10 +501,10 @@ c0=0
 c1=0
 c2=0
 for i in range(Out1.shape[0]):
-    if YYY[i][0] == 0:
+    if YYY[i] == 1:
         c0 += 1
-    if Out1[i][0] != YYY[i][0]:
-        if Out1[i][0] == 0:
+    if Out1[i] != YYY[i]:
+        if Out1[i] == 0:
             c1 += 1
         else : 
             c2 += 1
@@ -522,10 +532,10 @@ Nc0=0
 Nc1=0
 Nc2=0
 for i in range(NOut1.shape[0]):
-    if NYYY[i][0] == 0:
+    if NYYY[i] == 1:
         Nc0 += 1
-    if NOut1[i][0] != NYYY[i][0]:
-        if NOut1[i][0] == 0:
+    if NOut1[i] != NYYY[i]:
+        if NOut1[i] == 0:
             Nc1 += 1
         else : 
             Nc2 += 1
@@ -533,6 +543,11 @@ for i in range(NOut1.shape[0]):
 print('Nc0 = ', Nc0)
 print('Nc1 = ', Nc1)
 print('Nc2 = ', Nc2)
+
+print("accuracy_score = {}%".format(100*metrics.accuracy_score(NYYY, NOut1, normalize=True))) 
+print("precision_score = {}%".format(100*metrics.precision_score(NYYY, NOut1, average="weighted"))) 
+print("Recall_score = {}%".format(100*metrics.recall_score(NYYY, NOut1, average="weighted")))
+print("f1_score = {}%".format(100*metrics.f1_score(NYYY, NOut1, average="weighted")))
 
 AAAA = []
 BBBB = []
@@ -543,14 +558,14 @@ for i in range(NOut1.shape[0]):
     if i<predict_d:
         CCCC += [0]
     else : 
-        CCCC += [NYYY[i][1]]
+        CCCC += [NYYY[i]]
 
-    if NYYY[i][0] == 0:
+    if NYYY[i] == 0:
         AAAA += [1]
     else :
         AAAA += [0]
 
-    if NOut1[i][0] == 0:
+    if NOut1[i] == 0:
         BBBB += [1]
     else :
         BBBB += [0]
@@ -560,7 +575,7 @@ for i in range(NOut1.shape[0]):
     else :
         jj = 0
         for j in range(predict_d)[:-1] :
-            jj = (1-0.1*jj) + 0.1 * NOut1[i-j][1]
+            jj = (1-0.1*jj) + 0.1 * NOut1[i-j]
         DDDD += [(jj*2 / predict_d)]
 #        if jj > predict_d: 
 #            DDDD += [1]

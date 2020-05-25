@@ -3,6 +3,8 @@
 # Alexander M. Yuan
 # May 15, 2020
 #
+# May 20, 2020: converted to the new output with 1 value
+#
 # May 19, 2020: added XXXYYY2 to command line
 # May 18, 2020: added TFILE2 to command line
 # May 17, 2020: added TFILE to command line
@@ -108,12 +110,13 @@ batch_size = 128
 epoches = 5
 
 RNN_cell1 = SimpleRNN(n_a, activation=af, return_sequences=True, input_shape=(Tx, n_values))
+RNN_cellXX = SimpleRNN(n_a, activation=af, return_sequences=True)
 RNN_cell2 = SimpleRNN(n_a, activation=af)
 
 def parse_commandline():
     global RNN_cell1, RNN_cell2, af, Tx, predict_d, n_a, Tstep, Tcutoff, Sstep
     global batch_size
-    global epoches
+    global epoches, RNN_cellXX
     global TRAIN
     global TFILE
     global XXX
@@ -166,12 +169,15 @@ def parse_commandline():
     if len(sys.argv) > 1:
         if sys.argv[1] == 'SimpleRNN' :
             RNN_cell1 = SimpleRNN(n_a, activation=af, return_sequences=True, input_shape=(Tx, n_values))
+            RNN_cellXX = SimpleRNN(n_a, activation=af, return_sequences=True)
             RNN_cell2 = SimpleRNN(n_a, activation=af)
         elif sys.argv[1] == 'LSTM' :
             RNN_cell1 = LSTM(n_a, activation=af, return_sequences=True, input_shape=(Tx, n_values))
+            RNN_cellXX = SimpleRNN(n_a, activation=af, return_sequences=True)
             RNN_cell2 = LSTM(n_a, activation=af)
         elif sys.argv[1] == 'GRU' :
             RNN_cell1 = GRU(n_a, activation=af, return_sequences=True, input_shape=(Tx, n_values))
+            RNN_cellXX = SimpleRNN(n_a, activation=af, return_sequences=True)
             RNN_cell2 = GRU(n_a, activation=af)
         else :
             print('Usage: python3 Alex_gRNN_paper.py [SimpleRNN|LSTM|GRU] [acti] [n_a] [Tx] [predict_d] [Tstep] [Tcutoff] [Sstep] [batch_size] [epoches] [TFILE] [XXX] [YYY] [TFILE2] [XXXYYY2]')
@@ -254,14 +260,14 @@ def gen_batch_one_episode(data, beg, end, shuffle = 1):
         X += [t]
         if i+(Tx-1)*Tstep+predict_d > end-1:
             if data[end-1][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
-                Y += [[0,1]]
+                Y += [1]
             else :
-                Y += [[1, 0]]
+                Y += [0]
         else :
-            if data[i+j*Tstep+predict_d][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
-                Y += [[0, 1]]
+            if data[i+(Tx-1)*Tstep+predict_d][9] == '2' or data[i+(Tx-1)*Tstep][9] == '2':
+                Y += [1]
             else :
-                Y += [[1, 0]]
+                Y += [0]
 
     if shuffle != 1:
         return X, Y
@@ -283,12 +289,14 @@ def gen_batch(data, shuffle = 1):
     Y1 = []
     beg = 0
     end = beg
+    end1 = 0
     print('len=', len(data))
     while beg < len(data):
         end = beg
         while end < len(data) and data[end][9] != '2':
             # print(end, data[end], '**', data[end][9])
             end = end + 1
+        end1 = end
         while end < len(data) and data[end][9] == '2':
             end = end + 1
         if data[end-1][9] == '2': 
@@ -296,6 +304,7 @@ def gen_batch(data, shuffle = 1):
             X1, Y1 = gen_batch_one_episode(data, beg, end, shuffle = shuffle)
             X += X1
             Y += Y1
+#        print(beg, ' ', end1, ' ', end, ' ', end1-beg, ' ', end-end1)
         beg = end
     return X, Y
         
@@ -358,14 +367,14 @@ print(test_Y.shape)
 
 c = 0;
 for j in range(train_X.shape[0]):
-    if train_Y[j][0] == 0:
+    if train_Y[j] == 1:
         c += 1
 
 print('train_Y count = ', c)
 
 c = 0;
 for j in range(test_X.shape[0]):
-    if test_Y[j][0] == 0:
+    if test_Y[j] == 1:
         c += 1
 
 print('test_Y count = ', c)
@@ -388,7 +397,7 @@ print('test_Y count = ', c)
 n_values = 9
 reshapor = Reshape((1, n_values))
 LSTM_cell = LSTM(n_a, return_state=True)
-densor = Dense(2, activation='softmax')
+densor = Dense(1, activation='sigmoid')
 
 
 # In[7]:
@@ -453,7 +462,8 @@ model.summary()
 
 
 opt = Adam(lr=0.0009, beta_1 = 0.9, beta_2=0.999, decay = 0.01)
-model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+#model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy'])
 
 
 # # initialize hidden state and cell state
@@ -470,14 +480,74 @@ print(YYY.shape)
 
 # In[11]:
 
-model.fit(XXX, YYY, batch_size=batch_size, epochs=epoches)
+#myYYY = to_categorical(YYY)
 
-# In[12]:
+#model.fit(XXX, YYY, batch_size=batch_size, epochs=epoches)
 
-#model.save('rnn_model.h5')
+model1 = Sequential()
+model1.add(RNN_cell1)
+model1.add(RNN_cellXX)
+model1.add(densor)
+model1.load_weights('model/'+sys.argv[1]+'_Allbut'+TFILE[:-1]+'_'+str(predict_d)+'.h5')
+
+
+model2 = Sequential()
+for l in model1.layers[:-1] :
+    model2.add(l)
+model2.add(RNN_cell2)
+model2.add(densor)
+
+model2.layers[0].trainable = False
+model2.layers[1].trainable = False
+for l in model2.layers:
+    print(l.name, l.trainable)
+
+model2.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy'])
+
+#exit(0)
+
+NXXX=test_X
+NYYY=test_Y
+
+a1 = np.zeros((len(NXXX), n_a))
+c1= np.zeros((len(NYYY), n_a))
+print(NYYY.shape)
+NOut = model1.predict(NXXX, verbose=0)
+
+NOut1 = np.around(NOut)
+print(NOut1.shape[0])
+print(NOut1.shape)
+
+Nc0=0
+Nc1=0
+Nc2=0
+NEWOUT = []
+for i in range(NOut1.shape[0]):
+    NEWOUT += [NOut1[i][Tx-1][0]]
+    if NYYY[i] == 1:
+        Nc0 += 1
+    if NOut1[i][Tx-1][0] != NYYY[i]:
+        if NOut1[i][Tx-1][0] == 0:
+            Nc1 += 1
+        else : 
+            Nc2 += 1
+            
+print('Nc0 = ', Nc0)
+print('Nc1 = ', Nc1)
+print('Nc2 = ', Nc2)
+
+print("accuracy_score = {}%".format(100*metrics.accuracy_score(NYYY, NEWOUT, normalize=True))) 
+print("precision_score = {}%".format(100*metrics.precision_score(NYYY, NEWOUT, average="weighted"))) 
+print("Recall_score = {}%".format(100*metrics.recall_score(NYYY, NEWOUT, average="weighted")))
+print("f1_score = {}%".format(100*metrics.f1_score(NYYY, NEWOUT, average="weighted")))
+
+
+model2.fit(train_X, train_Y, batch_size=batch_size, epochs=epoches)
+
+NOut = model2.predict(test_X, verbose=0)
 
 #model1 = load_model('rnn_model.h5')
-Out = model.predict(XXX, verbose=0)
+Out = model2.predict(XXX, verbose=0)
 
 # ## try the model on the train and test data
 
@@ -491,10 +561,10 @@ c0=0
 c1=0
 c2=0
 for i in range(Out1.shape[0]):
-    if YYY[i][0] == 0:
+    if YYY[i] == 1:
         c0 += 1
-    if Out1[i][0] != YYY[i][0]:
-        if Out1[i][0] == 0:
+    if Out1[i] != YYY[i]:
+        if Out1[i] == 0:
             c1 += 1
         else : 
             c2 += 1
@@ -512,7 +582,7 @@ NYYY=test_Y
 a1 = np.zeros((len(NXXX), n_a))
 c1= np.zeros((len(NYYY), n_a))
 print(NYYY.shape)
-NOut = model.predict(NXXX, verbose=0)
+NOut = model2.predict(NXXX, verbose=0)
 
 NOut1 = np.around(NOut)
 print(NOut1.shape[0])
@@ -522,10 +592,10 @@ Nc0=0
 Nc1=0
 Nc2=0
 for i in range(NOut1.shape[0]):
-    if NYYY[i][0] == 0:
+    if NYYY[i] == 1:
         Nc0 += 1
-    if NOut1[i][0] != NYYY[i][0]:
-        if NOut1[i][0] == 0:
+    if NOut1[i] != NYYY[i]:
+        if NOut1[i] == 0:
             Nc1 += 1
         else : 
             Nc2 += 1
@@ -533,6 +603,11 @@ for i in range(NOut1.shape[0]):
 print('Nc0 = ', Nc0)
 print('Nc1 = ', Nc1)
 print('Nc2 = ', Nc2)
+
+print("accuracy_score = {}%".format(100*metrics.accuracy_score(NYYY, NOut1, normalize=True))) 
+print("precision_score = {}%".format(100*metrics.precision_score(NYYY, NOut1, average="weighted"))) 
+print("Recall_score = {}%".format(100*metrics.recall_score(NYYY, NOut1, average="weighted")))
+print("f1_score = {}%".format(100*metrics.f1_score(NYYY, NOut1, average="weighted")))
 
 AAAA = []
 BBBB = []
@@ -543,14 +618,14 @@ for i in range(NOut1.shape[0]):
     if i<predict_d:
         CCCC += [0]
     else : 
-        CCCC += [NYYY[i][1]]
+        CCCC += [NYYY[i]]
 
-    if NYYY[i][0] == 0:
+    if NYYY[i] == 0:
         AAAA += [1]
     else :
         AAAA += [0]
 
-    if NOut1[i][0] == 0:
+    if NOut1[i] == 0:
         BBBB += [1]
     else :
         BBBB += [0]
@@ -560,21 +635,21 @@ for i in range(NOut1.shape[0]):
     else :
         jj = 0
         for j in range(predict_d)[:-1] :
-            jj = (1-0.1*jj) + 0.1 * NOut1[i-j][1]
+            jj = (1-0.1*jj) + 0.1 * NOut1[i-j]
         DDDD += [(jj*2 / predict_d)]
 #        if jj > predict_d: 
 #            DDDD += [1]
 #        else :
 #            DDDD += [0]
 
-plt.plot(range(NOut1.shape[0]), CCCC)
-plt.savefig('raw.png')
+#plt.plot(range(NOut1.shape[0]), CCCC)
+#plt.savefig('raw.png')
 
-plt.plot(range(NOut1.shape[0]), DDDD)
-plt.savefig('shift.png')
+#plt.plot(range(NOut1.shape[0]), DDDD)
+#plt.savefig('shift.png')
 
-plt.plot(range(NOut1.shape[0]), BBBB)
-plt.savefig('pred.png')
+#plt.plot(range(NOut1.shape[0]), BBBB)
+#plt.savefig('pred.png')
 
 
 # In[15]:
