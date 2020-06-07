@@ -679,16 +679,17 @@ def print_metrics_file(RealY, PredY, f) :
     else :
         fmeasure = 0
 
-    print (file=f, '  total cases: ', total, ', negative cases: ', c0, ', positive cases:', c1)
-    print (file=f, '  negative cases, true positive: ', tp0, ', false negative: ', fn0)
-    print (file=f, '  postive  cases, true positive: ', tp1, ', false negative: ', fn1)
-    print (file=f, '  accuracy: ', accuracy)
-    print (file=f, '  sensitivity: ', sensitivity)
-    print (file=f, '  specificity: ', specificity)
-    print (file=f, '  G-mean: ', gmean)
-    print (file=f, '  precision : ', precision)
-    print (file=f, '  Recall: ', recall)
-    print (file=f, '  f-measure: ', fmeasure)
+    print ('  total cases: ', total, ', negative cases: ', c0, ', positive cases:', c1, file=f)
+    print ('  negative cases, true positive: ', tp0, ', false negative: ', fn0, file=f)
+    print ('  postive  cases, true positive: ', tp1, ', false negative: ', fn1, file=f)
+    print ('  accuracy: ', accuracy, file=f)
+    print ('  sensitivity: ', sensitivity, file=f)
+    print ('  specificity: ', specificity, file=f)
+    print ('  G-mean: ', gmean, file=f)
+    print ('  precision : ', precision, file=f)
+    print ('  Recall: ', recall, file=f)
+    print ('  f-measure: ', fmeasure, file=f)
+
 
 
 
