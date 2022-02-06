@@ -2,7 +2,7 @@ Alexander M. Yuan's project: Using Deep Learning to Predict Freezing of Gait
 in Patients with Parkinson's Disease.
 
 This project is supervised by Professor Shayok Chakraborty at Florida State 
-University. Different programs to repreduce the results in paper:
+University. Different programs to reproduce the results in paper:
 
 Vishwas G. Torvi, Aditya Bhattacharya, and Shayok Chakraborty, "Deep Domain 
 Adaptation to Predict Freezing of Gait in Patients with Parkinson's Disease," 
