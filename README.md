@@ -9,12 +9,12 @@ Vishwas G. Torvi, Aditya Bhattacharya, and Shayok Chakraborty, "Deep Domain
 Adaptation to Predict Freezing of Gait in Patients with Parkinson's Disease," 
 IEEE ICMLA 2018.
 
-The baseline code no longer works in the current version of python and 
-tensorflow. This repository contains many versions of updated programs with the 
-following main added functionality:
+The baseline code no longer works with the current version of Python and 
+TensorFlow. This repository contains the updated programs with the 
+following functionality that was added:
 
-1. Update the code to use Keras instead of tensorflow to build the RNN network.
-2. Expand the type of recurrent neural network from LSTM to LSTM, SimpleRNN, GRU, as well as the directional versions of these networks.
-3. Support many command options to set neural entwork hyperparamemters and other training parameters (af, n_a, Tx, predict_d, Tstep, Tcutoff, Ssetp, batch_size, epoches, TFILE, TFILE2, dropout rate, number of RNN layers, etc). See new_gRNN_paper_2layer_v6.py for details.
-4. Support both regular training and two transfer learning methods.  
+1. Updated the code to use Keras instead of Tensorflow to build the RNN network.
+2. Expanded the type of recurrent neural network from LSTM to LSTM, SimpleRNN, GRU, and the directional versions of these networks.
+3. Supported various command options to set neural network hyperparameters and other training parameters (af, n_a, Tx, predict_d, Tstep, Tcutoff, Ssetp, batch_size, epochs, TFILE, TFILE2, dropout rate, number of RNN layers, etc). See new_gRNN_paper_2layer_v6.py for details.
+4. Supported both regular training and two transfer learning methods.  
 
